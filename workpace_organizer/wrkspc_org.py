@@ -3,16 +3,42 @@ from os import path, makedirs
 from shutil import copy
 import re
 from colorama import Fore, Style, init
-
+import requests  # Add this import for Jira API requests
 
 # Define global path variables
 path_workspace = ""
+url_jira = "https://your-jira-instance.atlassian.net/rest/api/2/issue"
+
+def get_jira_ticket_info(ticket):
+    url_jira_complete = f"{url_jira}/{ticket}"
+    headers = {
+        "Accept": "application/json",
+        "Authorization": "Basic your_encoded_credentials"
+    }
+    response = requests.get(url_jira_complete, headers=headers)
+    if response.status_code == 200:
+        return response.json()
+    else:
+        raise ValueError(f"Failed to fetch data from Jira for ticket {ticket}")
 
 def set_up_directory(ticket):
     path_combo = path_workspace + ticket + "/"
     if not path.exists(path_combo):
         makedirs(ticket)
         copy(path_workspace+R"README.md", path_combo)
+        
+        # Fetch Jira ticket info
+        jira_info = get_jira_ticket_info(ticket)
+        summary = jira_info['fields']['summary']
+        description = jira_info['fields']['description']
+        
+        # Update README.md with Jira info
+        with open(path_combo + "README.md", 'a') as readme_file:
+            readme_file.write(f"\n# General information\n")
+            readme_file.write(f"**Name**: {summary}\n")
+            readme_file.write(f"**Case**: {ticket}\n")
+            readme_file.write(f"**Short Description**: {description}\n")
+        
         print("✅ Folder generated!")
     else:
         print("✋ Folder already exists")
